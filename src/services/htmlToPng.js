@@ -46,7 +46,9 @@ class HtmlToPngService {
       deviceScaleFactor = 1,
       fullPage = false,
       omitBackground = false,
-      timeout = 30000
+      timeout = 30000,
+      autoWidth = false, // 新增：自动适应内容宽度
+      padding = 0 // 新增：内容周围的内边距
     } = options;
 
     let page = null;
@@ -72,6 +74,7 @@ class HtmlToPngService {
           * { 
             font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
           }
+          ${autoWidth ? 'body { margin: 0; padding: ' + padding + 'px; width: fit-content; min-width: auto; }' : ''}
         </style>`
       );
 
@@ -80,16 +83,52 @@ class HtmlToPngService {
         timeout
       });
 
-      // Take screenshot
-      const screenshotOptions = {
+      let screenshotOptions = {
         type: 'png',
         fullPage,
         omitBackground
       };
-      
-      // PNG不支持quality参数，只有JPEG支持
-      // 如果需要quality控制，可以考虑先生成JPEG再转PNG
-      
+
+      // 如果启用自动宽度，获取内容的实际尺寸
+      if (autoWidth) {
+        const contentSize = await page.evaluate(() => {
+          const body = document.body;
+          const html = document.documentElement;
+          
+          return {
+            width: Math.max(
+              body.scrollWidth,
+              body.offsetWidth,
+              html.clientWidth,
+              html.scrollWidth,
+              html.offsetWidth
+            ),
+            height: Math.max(
+              body.scrollHeight,
+              body.offsetHeight,
+              html.clientHeight,
+              html.scrollHeight,
+              html.offsetHeight
+            )
+          };
+        });
+
+        // 设置页面视口为内容实际大小
+        await page.setViewport({
+          width: Math.min(contentSize.width + padding * 2, 4000), // 限制最大宽度
+          height: Math.min(contentSize.height + padding * 2, 4000), // 限制最大高度
+          deviceScaleFactor
+        });
+
+        // 添加裁剪区域
+        screenshotOptions.clip = {
+          x: 0,
+          y: 0,
+          width: Math.min(contentSize.width + padding * 2, 4000),
+          height: Math.min(contentSize.height + padding * 2, 4000)
+        };
+      }
+
       const screenshot = await page.screenshot(screenshotOptions);
 
       return screenshot;

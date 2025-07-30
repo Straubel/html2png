@@ -111,7 +111,9 @@ class ValidationUtils {
       deviceScaleFactor: { type: 'number', min: 0.5, max: 3 },
       fullPage: { type: 'boolean' },
       omitBackground: { type: 'boolean' },
-      timeout: { type: 'number', min: 1000, max: 60000 }
+      timeout: { type: 'number', min: 1000, max: 60000 },
+      autoWidth: { type: 'boolean' },
+      padding: { type: 'number', min: 0, max: 100 }
     };
 
     for (const [key, value] of Object.entries(options)) {

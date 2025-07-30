@@ -8,7 +8,7 @@ class HtmlToPngService {
   async getBrowser() {
     if (!this.browser) {
       this.browser = await puppeteer.launch({
-        headless: true, // v19 uses 'true' instead of 'new'
+        headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -23,8 +23,17 @@ class HtmlToPngService {
           '--disable-extensions',
           '--disable-plugins',
           '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
-        ]
+          '--disable-features=VizDisplayCompositor',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-ipc-flooding-protection',
+          '--allow-running-insecure-content',
+          '--disable-blink-features=AutomationControlled',
+          '--font-render-hinting=none'
+        ],
+        ignoreDefaultArgs: ['--disable-extensions'],
+        ignoreHTTPSErrors: true
       });
     }
     return this.browser;

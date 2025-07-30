@@ -71,8 +71,17 @@ class HtmlToPngService {
       const htmlWithFontFallback = html.replace(
         /<head>/i,
         `<head><style>
-          * { 
+          /* 中文字体回退，但保留icon字体 */
+          body, p, h1, h2, h3, h4, h5, h6, div, span:not([class*="icon"]):not([class*="fa"]):not([class*="glyphicon"]) { 
             font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
+          }
+          /* 保护常见的icon字体类 */
+          .fa, .fas, .far, .fal, .fab, .fad, 
+          .icon, .icons, .iconfont,
+          .glyphicon, .material-icons,
+          [class*="icon-"], [class*="fa-"],
+          i[class*="icon"], i[class*="fa"] {
+            font-family: inherit !important;
           }
           ${autoWidth ? `
           html, body { 

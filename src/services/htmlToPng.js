@@ -57,6 +57,47 @@ class HtmlToPngService {
       const browser = await this.getBrowser();
       page = await browser.newPage();
 
+      // 监听所有网络请求
+      const failedRequests = [];
+      const successRequests = [];
+      
+      page.on('requestfailed', request => {
+        const url = request.url();
+        const failure = request.failure();
+        failedRequests.push({
+          url,
+          method: request.method(),
+          resourceType: request.resourceType(),
+          errorText: failure ? failure.errorText : 'Unknown error'
+        });
+        console.log(`❌ 资源加载失败: ${request.resourceType()} - ${url}`);
+        console.log(`   错误: ${failure ? failure.errorText : 'Unknown error'}`);
+      });
+
+      page.on('response', response => {
+        const url = response.url();
+        const status = response.status();
+        if (status >= 400) {
+          failedRequests.push({
+            url,
+            status,
+            statusText: response.statusText(),
+            resourceType: 'response_error'
+          });
+          console.log(`❌ HTTP错误: ${status} - ${url}`);
+        } else if (url.includes('font') || url.includes('css') || url.includes('icon')) {
+          successRequests.push({
+            url,
+            status,
+            resourceType: 'font/css'
+          });
+          console.log(`✅ 资源加载成功: ${status} - ${url}`);
+        }
+      });
+
+      // 启用请求拦截来监控
+      await page.setRequestInterception(false); // 不拦截，只监控
+
       // Set viewport
       await page.setViewport({
         width,
@@ -112,6 +153,44 @@ class HtmlToPngService {
       await page.setContent(htmlWithFontFallback, {
         waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
         timeout
+      });
+
+      // 等待字体加载完成
+      console.log('⏳ 等待字体和资源加载完成...');
+      await page.evaluate(() => {
+        return new Promise((resolve) => {
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => {
+              console.log('字体加载完成');
+              resolve();
+            });
+          } else {
+            // 如果不支持 document.fonts，等待一下
+            setTimeout(resolve, 1000);
+          }
+        });
+      });
+
+      // 检查页面中的字体
+      const fontInfo = await page.evaluate(() => {
+        const elements = document.querySelectorAll('i[class*="fa"], .fa, .material-icons');
+        const fontFamilies = [];
+        elements.forEach(el => {
+          const style = window.getComputedStyle(el);
+          fontFamilies.push({
+            element: el.className,
+            fontFamily: style.fontFamily,
+            content: el.textContent || el.innerHTML
+          });
+        });
+        return fontFamilies;
+      });
+
+      console.log('🔤 页面中的icon元素字体信息:');
+      fontInfo.forEach((info, index) => {
+        console.log(`   ${index + 1}. 类名: ${info.element}`);
+        console.log(`      字体: ${info.fontFamily}`);
+        console.log(`      内容: ${info.content || '(空)'}`);
       });
 
       let screenshotOptions = {
@@ -190,6 +269,26 @@ class HtmlToPngService {
       }
 
       const screenshot = await page.screenshot(screenshotOptions);
+
+      // 输出资源加载汇总
+      console.log(`📊 资源加载汇总:`);
+      console.log(`   ✅ 成功: ${successRequests.length} 个资源`);
+      console.log(`   ❌ 失败: ${failedRequests.length} 个资源`);
+      
+      if (failedRequests.length > 0) {
+        console.log(`📋 失败的资源详情:`);
+        failedRequests.forEach((req, index) => {
+          console.log(`   ${index + 1}. [${req.resourceType || 'unknown'}] ${req.url}`);
+          console.log(`      错误: ${req.errorText || req.statusText || 'Unknown error'}`);
+        });
+      }
+
+      if (successRequests.length > 0) {
+        console.log(`📋 成功的字体/CSS资源:`);
+        successRequests.forEach((req, index) => {
+          console.log(`   ${index + 1}. [${req.status}] ${req.url}`);
+        });
+      }
 
       return screenshot;
 

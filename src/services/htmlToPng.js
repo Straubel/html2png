@@ -65,8 +65,17 @@ class HtmlToPngService {
       // Set timeout for page operations
       page.setDefaultTimeout(timeout);
 
-      // Set HTML content
-      await page.setContent(html, {
+      // Set HTML content with Chinese font fallback
+      const htmlWithFontFallback = html.replace(
+        /<head>/i,
+        `<head><style>
+          * { 
+            font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
+          }
+        </style>`
+      );
+
+      await page.setContent(htmlWithFontFallback, {
         waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
         timeout
       });

@@ -115,27 +115,34 @@ class HtmlToPngService {
       // 检查HTML中是否包含icon元素
       const hasIcons = html.includes('fa-') || html.includes('material-icons') || html.includes('icon-') || html.includes('glyphicon');
       
-      if (hasIcons) {
-        // 有icon时，完全不注入中文字体，让原始CSS生效
+      // 根据用户的fontFamily设置决定是否注入字体
+      let shouldInjectFont = true;
+      if (hasIcons && fontFamily === 'default') {
+        // 有icon且用户没有明确指定字体时，保持原始设置
         console.log('🎯 检测到icon元素，保持原始字体设置');
-        htmlWithFontFallback = html;
+        shouldInjectFont = false;
+      } else if (fontFamily !== 'custom') {
+        // 用户明确指定了字体（pingfang或default），即使有icon也要应用
+        console.log(`📝 用户指定字体: ${fontFamily}，强制应用字体设置`);
+        shouldInjectFont = true;
       } else {
-        // 没有icon时才注入中文字体
-        console.log('📝 注入中文字体支持');
-        
+        console.log('📝 用户选择custom字体，保持原始设置');
+        shouldInjectFont = false;
+      }
+      
+      if (shouldInjectFont) {
         let fontCSS = '';
         if (fontFamily === 'pingfang') {
           fontCSS = `
-            body, p, h1, h2, h3, h4, h5, h6, div, span { 
+            body, p, h1, h2, h3, h4, h5, h6, div, span:not([class*="fa"]):not([class*="icon"]) { 
               font-family: "PingFang SC", "PingFang TC", "Apple System Font", "Helvetica Neue", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif !important; 
             }`;
         } else if (fontFamily === 'default') {
           fontCSS = `
-            body, p, h1, h2, h3, h4, h5, h6, div, span { 
+            body, p, h1, h2, h3, h4, h5, h6, div, span:not([class*="fa"]):not([class*="icon"]) { 
               font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
             }`;
         }
-        // fontFamily === 'custom' 时不注入任何字体CSS
         
         if (fontCSS) {
           htmlWithFontFallback = html.replace(
@@ -145,6 +152,8 @@ class HtmlToPngService {
         } else {
           htmlWithFontFallback = html;
         }
+      } else {
+        htmlWithFontFallback = html;
       }
       
       // 如果是自动宽度，添加布局CSS
@@ -227,7 +236,7 @@ class HtmlToPngService {
           const body = document.body;
           const html = document.documentElement;
           
-          // 获取所有可能的宽度值
+          // 获取所有可能的尺寸值
           const widths = [
             body.scrollWidth,
             body.offsetWidth,
@@ -237,36 +246,61 @@ class HtmlToPngService {
             html.offsetWidth
           ];
           
-          // 获取所有元素的边界框来确定实际内容范围
+          const heights = [
+            body.scrollHeight,
+            body.offsetHeight,
+            body.clientHeight,
+            html.clientHeight,
+            html.scrollHeight,
+            html.offsetHeight
+          ];
+          
+          // 获取所有有内容元素的边界框
           const allElements = document.querySelectorAll('*');
           let minX = Infinity, minY = Infinity, maxRight = 0, maxBottom = 0;
+          let hasValidElements = false;
           
           for (let element of allElements) {
+            // 跳过html和body元素
+            if (element.tagName === 'HTML' || element.tagName === 'BODY') continue;
+            
             const rect = element.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
+            const style = window.getComputedStyle(element);
+            
+            // 只考虑有实际内容或有背景的元素
+            if ((rect.width > 0 && rect.height > 0) && 
+                (element.textContent.trim() || 
+                 style.backgroundColor !== 'rgba(0, 0, 0, 0)' || 
+                 style.backgroundImage !== 'none' ||
+                 style.border !== '0px none rgb(0, 0, 0)')) {
+              
               minX = Math.min(minX, rect.left);
               minY = Math.min(minY, rect.top);
               maxRight = Math.max(maxRight, rect.right);
               maxBottom = Math.max(maxBottom, rect.bottom);
+              hasValidElements = true;
             }
           }
           
-          // 如果有具体的元素边界，使用它；否则使用传统方法
-          const actualWidth = maxRight > 0 ? Math.ceil(maxRight - Math.max(0, minX)) : Math.max(...widths);
-          const actualHeight = maxBottom > 0 ? Math.ceil(maxBottom - Math.max(0, minY)) : Math.max(
-            body.scrollHeight,
-            body.offsetHeight,
-            html.clientHeight,
-            html.scrollHeight,
-            html.offsetHeight
-          );
+          // 如果有有效元素，使用边界框；否则使用传统方法
+          let actualWidth, actualHeight;
+          if (hasValidElements && maxRight > 0 && maxBottom > 0) {
+            actualWidth = Math.ceil(maxRight - Math.max(0, minX));
+            actualHeight = Math.ceil(maxBottom - Math.max(0, minY));
+          } else {
+            actualWidth = Math.max(...widths);
+            actualHeight = Math.max(...heights);
+            minX = 0;
+            minY = 0;
+          }
           
           return {
             width: actualWidth,
             height: actualHeight,
             offsetX: Math.max(0, minX),
             offsetY: Math.max(0, minY),
-            detectionMethod: maxRight > 0 ? 'boundingBox' : 'traditional'
+            detectionMethod: hasValidElements ? 'contentBoundingBox' : 'traditional',
+            elementCount: hasValidElements ? allElements.length : 0
           };
         });
 

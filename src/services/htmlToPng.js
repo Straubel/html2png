@@ -85,7 +85,6 @@ class HtmlToPngService {
 
       let screenshotOptions = {
         type: 'png',
-        fullPage,
         omitBackground
       };
 
@@ -120,13 +119,16 @@ class HtmlToPngService {
           deviceScaleFactor
         });
 
-        // 添加裁剪区域
+        // 自动宽度模式下不使用fullPage，而是使用clip进行精确裁剪
         screenshotOptions.clip = {
           x: 0,
           y: 0,
           width: Math.min(contentSize.width + padding * 2, 4000),
           height: Math.min(contentSize.height + padding * 2, 4000)
         };
+      } else {
+        // 传统模式下可以使用fullPage
+        screenshotOptions.fullPage = fullPage;
       }
 
       const screenshot = await page.screenshot(screenshotOptions);

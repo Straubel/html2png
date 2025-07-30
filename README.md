@@ -124,6 +124,8 @@ Content-Type: application/json
 | options.padding | number | 否 | 内容周围内边距(px) (0-100) | 0 |
 | options.timeout | number | 否 | 超时时间(ms) (1000-60000) | 30000 |
 
+**注意：** `autoWidth` 与 `fullPage` 参数互斥，启用 `autoWidth` 时会自动忽略 `fullPage` 设置。
+
 #### 响应示例
 
 成功：

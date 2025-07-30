@@ -116,22 +116,32 @@ class HtmlToPngService {
           @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
           @import url('https://cdnjs.cloudflare.com/ajax/libs/material-design-icons/4.0.0/font/MaterialIcons-Regular.min.css');
           
-          /* 中文字体回退，但完全排除icon元素 */
+          /* 只对文本元素应用中文字体，完全排除icon */
           body, p, h1, h2, h3, h4, h5, h6, div, 
-          span:not([class*="icon"]):not([class*="fa"]):not([class*="material"]) { 
+          span:not([class*="icon"]):not([class*="fa"]):not([class*="material"]):not([class*="glyphicon"]) { 
             font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
           }
           
-          /* 强制保护所有可能的icon字体 */
-          i, .fa, .fas, .far, .fal, .fab, .fad, .fat, .fass, .fasr, .fasl,
+          /* 完全重置icon字体，让其使用原始CSS定义 */
+          i, i[class], 
+          .fa, .fas, .far, .fal, .fab, .fad, .fat, .fass, .fasr, .fasl,
           .fa-solid, .fa-regular, .fa-light, .fa-thin, .fa-duotone, .fa-brands,
           .icon, .icons, .iconfont, .material-icons, .material-icons-outlined,
-          .glyphicon, [class*="icon-"], [class*="fa-"], [class*="material-"],
-          i[class], span[class*="icon"], span[class*="fa"], span[class*="material"] {
+          .glyphicon, 
+          [class*="icon-"], [class*="fa-"], [class*="material-"],
+          i[class*="fa"], span[class*="icon"], span[class*="fa"], span[class*="material"] {
             font-family: inherit !important;
             font-weight: inherit !important;
             font-style: inherit !important;
           }
+          
+          /* 强制重新应用FontAwesome字体 */
+          .fa, .fas, .fa-solid { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .far, .fa-regular { font-family: "Font Awesome 6 Free" !important; font-weight: 400 !important; }
+          .fab, .fa-brands { font-family: "Font Awesome 6 Brands" !important; font-weight: 400 !important; }
+          .fal, .fa-light { font-family: "Font Awesome 6 Pro" !important; font-weight: 300 !important; }
+          .fat, .fa-thin { font-family: "Font Awesome 6 Pro" !important; font-weight: 100 !important; }
+          .fad, .fa-duotone { font-family: "Font Awesome 6 Duotone" !important; font-weight: 900 !important; }
           
           ${autoWidth ? `
           html, body { 

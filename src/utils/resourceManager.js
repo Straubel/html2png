@@ -113,7 +113,8 @@ class ValidationUtils {
       omitBackground: { type: 'boolean' },
       timeout: { type: 'number', min: 1000, max: 60000 },
       autoWidth: { type: 'boolean' },
-      padding: { type: 'number', min: 0, max: 100 }
+      padding: { type: 'number', min: 0, max: 100 },
+      fontFamily: { type: 'string', enum: ['default', 'pingfang', 'custom'] }
     };
 
     for (const [key, value] of Object.entries(options)) {
@@ -130,6 +131,10 @@ class ValidationUtils {
 
       if (validation.max && value > validation.max) {
         throw new Error(`Option '${key}' must be at most ${validation.max}`);
+      }
+
+      if (validation.enum && !validation.enum.includes(value)) {
+        throw new Error(`Option '${key}' must be one of: ${validation.enum.join(', ')}`);
       }
     }
 

@@ -48,7 +48,8 @@ class HtmlToPngService {
       omitBackground = false,
       timeout = 30000,
       autoWidth = false, // 新增：自动适应内容宽度
-      padding = 0 // 新增：内容周围的内边距
+      padding = 0, // 新增：内容周围的内边距
+      fontFamily = 'default' // 新增：字体选项 'default', 'pingfang', 'custom'
     } = options;
 
     let page = null;
@@ -121,14 +122,29 @@ class HtmlToPngService {
       } else {
         // 没有icon时才注入中文字体
         console.log('📝 注入中文字体支持');
-        htmlWithFontFallback = html.replace(
-          /<head>/i,
-          `<head><style>
+        
+        let fontCSS = '';
+        if (fontFamily === 'pingfang') {
+          fontCSS = `
+            body, p, h1, h2, h3, h4, h5, h6, div, span { 
+              font-family: "PingFang SC", "PingFang TC", "Apple System Font", "Helvetica Neue", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif !important; 
+            }`;
+        } else if (fontFamily === 'default') {
+          fontCSS = `
             body, p, h1, h2, h3, h4, h5, h6, div, span { 
               font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
-            }
-          </style>`
-        );
+            }`;
+        }
+        // fontFamily === 'custom' 时不注入任何字体CSS
+        
+        if (fontCSS) {
+          htmlWithFontFallback = html.replace(
+            /<head>/i,
+            `<head><style>${fontCSS}</style>`
+          );
+        } else {
+          htmlWithFontFallback = html;
+        }
       }
       
       // 如果是自动宽度，添加布局CSS
@@ -223,20 +239,21 @@ class HtmlToPngService {
           
           // 获取所有元素的边界框来确定实际内容范围
           const allElements = document.querySelectorAll('*');
-          let maxRight = 0;
-          let maxBottom = 0;
+          let minX = Infinity, minY = Infinity, maxRight = 0, maxBottom = 0;
           
           for (let element of allElements) {
             const rect = element.getBoundingClientRect();
             if (rect.width > 0 && rect.height > 0) {
+              minX = Math.min(minX, rect.left);
+              minY = Math.min(minY, rect.top);
               maxRight = Math.max(maxRight, rect.right);
               maxBottom = Math.max(maxBottom, rect.bottom);
             }
           }
           
           // 如果有具体的元素边界，使用它；否则使用传统方法
-          const actualWidth = maxRight > 0 ? Math.ceil(maxRight) : Math.max(...widths);
-          const actualHeight = maxBottom > 0 ? Math.ceil(maxBottom) : Math.max(
+          const actualWidth = maxRight > 0 ? Math.ceil(maxRight - Math.max(0, minX)) : Math.max(...widths);
+          const actualHeight = maxBottom > 0 ? Math.ceil(maxBottom - Math.max(0, minY)) : Math.max(
             body.scrollHeight,
             body.offsetHeight,
             html.clientHeight,
@@ -247,6 +264,8 @@ class HtmlToPngService {
           return {
             width: actualWidth,
             height: actualHeight,
+            offsetX: Math.max(0, minX),
+            offsetY: Math.max(0, minY),
             detectionMethod: maxRight > 0 ? 'boundingBox' : 'traditional'
           };
         });
@@ -265,8 +284,8 @@ class HtmlToPngService {
 
         // 自动宽度模式下不使用fullPage，而是使用clip进行精确裁剪
         screenshotOptions.clip = {
-          x: 0,
-          y: 0,
+          x: Math.max(0, contentSize.offsetX - padding),
+          y: Math.max(0, contentSize.offsetY - padding), 
           width: finalWidth,
           height: finalHeight
         };

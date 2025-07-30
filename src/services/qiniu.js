@@ -76,7 +76,9 @@ class QiniuService {
             
             if (this.domain) {
               // Use custom domain if configured
-              imageUrl = `https://${this.domain}/${respBody.key}`;
+              // 处理域名可能已包含协议的情况
+              const cleanDomain = this.domain.replace(/^https?:\/\//, '');
+              imageUrl = `https://${cleanDomain}/${respBody.key}`;
             } else {
               // Use default qiniu domain
               imageUrl = `https://${this.bucket}.qiniudn.com/${respBody.key}`;
@@ -114,7 +116,10 @@ class QiniuService {
             let imageUrl;
             
             if (this.domain) {
-              imageUrl = `https://${this.domain}/${respBody.key}`;
+              // Use custom domain if configured
+              // 处理域名可能已包含协议的情况
+              const cleanDomain = this.domain.replace(/^https?:\/\//, '');
+              imageUrl = `https://${cleanDomain}/${respBody.key}`;
             } else {
               imageUrl = `https://${this.bucket}.qiniudn.com/${respBody.key}`;
             }

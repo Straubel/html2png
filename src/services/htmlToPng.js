@@ -75,12 +75,13 @@ class HtmlToPngService {
           body, p, h1, h2, h3, h4, h5, h6, div, span:not([class*="icon"]):not([class*="fa"]):not([class*="glyphicon"]) { 
             font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
           }
-          /* 保护常见的icon字体类 */
-          .fa, .fas, .far, .fal, .fab, .fad, 
+          /* 保护所有icon字体类 - FontAwesome 6语法 */
+          .fa, .fas, .far, .fal, .fab, .fad, .fat, .fass, .fasr, .fasl,
+          .fa-solid, .fa-regular, .fa-light, .fa-thin, .fa-duotone, .fa-brands,
           .icon, .icons, .iconfont,
           .glyphicon, .material-icons,
-          [class*="icon-"], [class*="fa-"],
-          i[class*="icon"], i[class*="fa"] {
+          [class*="icon-"], [class*="fa-"], [class*="fa "],
+          i[class*="icon"], i[class*="fa"], i.fa-solid, i.fa-regular, i.fa-light, i.fa-brands {
             font-family: inherit !important;
           }
           ${autoWidth ? `

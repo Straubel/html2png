@@ -135,7 +135,7 @@ class HtmlToPngService {
         if (fontFamily === 'pingfang') {
           fontCSS = `
             body, p, h1, h2, h3, h4, h5, h6, div, span:not([class*="fa"]):not([class*="icon"]) { 
-              font-family: "PingFang SC", "PingFang TC", "Apple System Font", "Helvetica Neue", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif !important; 
+              font-family: "PingFang SC", "PingFang TC", "Apple System Font", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Roboto", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif !important; 
             }`;
         } else if (fontFamily === 'default') {
           fontCSS = `
@@ -205,24 +205,24 @@ class HtmlToPngService {
 
       // 检查页面中的字体
       const fontInfo = await page.evaluate(() => {
-        const elements = document.querySelectorAll('i[class*="fa"], .fa, .material-icons');
+        const elements = document.querySelectorAll('i[class*="fa"], .fa, .material-icons, p, h1, h2, h3, div');
         const fontFamilies = [];
         elements.forEach(el => {
           const style = window.getComputedStyle(el);
           fontFamilies.push({
-            element: el.className,
+            element: el.className || el.tagName,
             fontFamily: style.fontFamily,
-            content: el.textContent || el.innerHTML
+            content: el.textContent ? el.textContent.substring(0, 20) + '...' : '(空)'
           });
         });
-        return fontFamilies;
+        return fontFamilies.slice(0, 5); // 只显示前5个
       });
 
-      console.log('🔤 页面中的icon元素字体信息:');
+      console.log('🔤 页面元素字体信息（采样）:');
       fontInfo.forEach((info, index) => {
-        console.log(`   ${index + 1}. 类名: ${info.element}`);
+        console.log(`   ${index + 1}. ${info.element}`);
         console.log(`      字体: ${info.fontFamily}`);
-        console.log(`      内容: ${info.content || '(空)'}`);
+        console.log(`      内容: ${info.content}`);
       });
 
       let screenshotOptions = {

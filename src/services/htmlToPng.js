@@ -74,7 +74,20 @@ class HtmlToPngService {
           * { 
             font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
           }
-          ${autoWidth ? 'body { margin: 0; padding: ' + padding + 'px; width: fit-content; min-width: auto; }' : ''}
+          ${autoWidth ? `
+          html, body { 
+            margin: 0; 
+            padding: ${padding}px; 
+            width: fit-content; 
+            min-width: auto; 
+            max-width: none;
+            overflow: visible;
+            box-sizing: border-box;
+          }
+          * {
+            box-sizing: border-box;
+          }
+          ` : ''}
         </style>`
       );
 
@@ -94,28 +107,55 @@ class HtmlToPngService {
           const body = document.body;
           const html = document.documentElement;
           
+          // 获取所有可能的宽度值
+          const widths = [
+            body.scrollWidth,
+            body.offsetWidth,
+            body.clientWidth,
+            html.clientWidth,
+            html.scrollWidth,
+            html.offsetWidth
+          ];
+          
+          // 获取所有元素的边界框来确定实际内容范围
+          const allElements = document.querySelectorAll('*');
+          let maxRight = 0;
+          let maxBottom = 0;
+          
+          for (let element of allElements) {
+            const rect = element.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              maxRight = Math.max(maxRight, rect.right);
+              maxBottom = Math.max(maxBottom, rect.bottom);
+            }
+          }
+          
+          // 如果有具体的元素边界，使用它；否则使用传统方法
+          const actualWidth = maxRight > 0 ? Math.ceil(maxRight) : Math.max(...widths);
+          const actualHeight = maxBottom > 0 ? Math.ceil(maxBottom) : Math.max(
+            body.scrollHeight,
+            body.offsetHeight,
+            html.clientHeight,
+            html.scrollHeight,
+            html.offsetHeight
+          );
+          
           return {
-            width: Math.max(
-              body.scrollWidth,
-              body.offsetWidth,
-              html.clientWidth,
-              html.scrollWidth,
-              html.offsetWidth
-            ),
-            height: Math.max(
-              body.scrollHeight,
-              body.offsetHeight,
-              html.clientHeight,
-              html.scrollHeight,
-              html.offsetHeight
-            )
+            width: actualWidth,
+            height: actualHeight,
+            detectionMethod: maxRight > 0 ? 'boundingBox' : 'traditional'
           };
         });
 
+        console.log(`📐 内容尺寸检测 (${contentSize.detectionMethod}):`, contentSize);
+
         // 设置页面视口为内容实际大小
+        const finalWidth = Math.min(contentSize.width + padding * 2, 4000);
+        const finalHeight = Math.min(contentSize.height + padding * 2, 4000);
+        
         await page.setViewport({
-          width: Math.min(contentSize.width + padding * 2, 4000), // 限制最大宽度
-          height: Math.min(contentSize.height + padding * 2, 4000), // 限制最大高度
+          width: finalWidth,
+          height: finalHeight,
           deviceScaleFactor
         });
 
@@ -123,8 +163,8 @@ class HtmlToPngService {
         screenshotOptions.clip = {
           x: 0,
           y: 0,
-          width: Math.min(contentSize.width + padding * 2, 4000),
-          height: Math.min(contentSize.height + padding * 2, 4000)
+          width: finalWidth,
+          height: finalHeight
         };
       } else {
         // 传统模式下可以使用fullPage

@@ -22,15 +22,15 @@ class HtmlToPngService {
           '--max_old_space_size=512',
           '--disable-extensions',
           '--disable-plugins',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
           '--disable-renderer-backgrounding',
           '--disable-ipc-flooding-protection',
           '--allow-running-insecure-content',
           '--disable-blink-features=AutomationControlled',
-          '--font-render-hinting=none'
+          '--font-render-hinting=none',
+          '--enable-font-antialiasing',
+          '--allow-file-access-from-files'
         ],
         ignoreDefaultArgs: ['--disable-extensions'],
         ignoreHTTPSErrors: true
@@ -71,19 +71,27 @@ class HtmlToPngService {
       const htmlWithFontFallback = html.replace(
         /<head>/i,
         `<head><style>
-          /* 中文字体回退，但保留icon字体 */
-          body, p, h1, h2, h3, h4, h5, h6, div, span:not([class*="icon"]):not([class*="fa"]):not([class*="glyphicon"]) { 
+          /* 等待外部字体加载完成 */
+          @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+          @import url('https://cdnjs.cloudflare.com/ajax/libs/material-design-icons/4.0.0/font/MaterialIcons-Regular.min.css');
+          
+          /* 中文字体回退，但完全排除icon元素 */
+          body, p, h1, h2, h3, h4, h5, h6, div, 
+          span:not([class*="icon"]):not([class*="fa"]):not([class*="material"]) { 
             font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
           }
-          /* 保护所有icon字体类 - FontAwesome 6语法 */
-          .fa, .fas, .far, .fal, .fab, .fad, .fat, .fass, .fasr, .fasl,
+          
+          /* 强制保护所有可能的icon字体 */
+          i, .fa, .fas, .far, .fal, .fab, .fad, .fat, .fass, .fasr, .fasl,
           .fa-solid, .fa-regular, .fa-light, .fa-thin, .fa-duotone, .fa-brands,
-          .icon, .icons, .iconfont,
-          .glyphicon, .material-icons,
-          [class*="icon-"], [class*="fa-"], [class*="fa "],
-          i[class*="icon"], i[class*="fa"], i.fa-solid, i.fa-regular, i.fa-light, i.fa-brands {
+          .icon, .icons, .iconfont, .material-icons, .material-icons-outlined,
+          .glyphicon, [class*="icon-"], [class*="fa-"], [class*="material-"],
+          i[class], span[class*="icon"], span[class*="fa"], span[class*="material"] {
             font-family: inherit !important;
+            font-weight: inherit !important;
+            font-style: inherit !important;
           }
+          
           ${autoWidth ? `
           html, body { 
             margin: 0; 

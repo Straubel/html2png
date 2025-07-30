@@ -108,57 +108,54 @@ class HtmlToPngService {
       // Set timeout for page operations
       page.setDefaultTimeout(timeout);
 
-      // Set HTML content with Chinese font fallback
-      const htmlWithFontFallback = html.replace(
-        /<head>/i,
-        `<head><style>
-          /* 等待外部字体加载完成 */
-          @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
-          @import url('https://cdnjs.cloudflare.com/ajax/libs/material-design-icons/4.0.0/font/MaterialIcons-Regular.min.css');
-          
-          /* 只对文本元素应用中文字体，完全排除icon */
-          body, p, h1, h2, h3, h4, h5, h6, div, 
-          span:not([class*="icon"]):not([class*="fa"]):not([class*="material"]):not([class*="glyphicon"]) { 
-            font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
-          }
-          
-          /* 完全重置icon字体，让其使用原始CSS定义 */
-          i, i[class], 
-          .fa, .fas, .far, .fal, .fab, .fad, .fat, .fass, .fasr, .fasl,
-          .fa-solid, .fa-regular, .fa-light, .fa-thin, .fa-duotone, .fa-brands,
-          .icon, .icons, .iconfont, .material-icons, .material-icons-outlined,
-          .glyphicon, 
-          [class*="icon-"], [class*="fa-"], [class*="material-"],
-          i[class*="fa"], span[class*="icon"], span[class*="fa"], span[class*="material"] {
-            font-family: inherit !important;
-            font-weight: inherit !important;
-            font-style: inherit !important;
-          }
-          
-          /* 强制重新应用FontAwesome字体 */
-          .fa, .fas, .fa-solid { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
-          .far, .fa-regular { font-family: "Font Awesome 6 Free" !important; font-weight: 400 !important; }
-          .fab, .fa-brands { font-family: "Font Awesome 6 Brands" !important; font-weight: 400 !important; }
-          .fal, .fa-light { font-family: "Font Awesome 6 Pro" !important; font-weight: 300 !important; }
-          .fat, .fa-thin { font-family: "Font Awesome 6 Pro" !important; font-weight: 100 !important; }
-          .fad, .fa-duotone { font-family: "Font Awesome 6 Duotone" !important; font-weight: 900 !important; }
-          
-          ${autoWidth ? `
-          html, body { 
-            margin: 0; 
-            padding: ${padding}px; 
-            width: fit-content; 
-            min-width: auto; 
-            max-width: none;
-            overflow: visible;
-            box-sizing: border-box;
-          }
-          * {
-            box-sizing: border-box;
-          }
-          ` : ''}
-        </style>`
-      );
+      // Set HTML content with Chinese font fallback - 完全禁用自动中文字体注入
+      let htmlWithFontFallback;
+      
+      // 检查HTML中是否包含icon元素
+      const hasIcons = html.includes('fa-') || html.includes('material-icons') || html.includes('icon-') || html.includes('glyphicon');
+      
+      if (hasIcons) {
+        // 有icon时，完全不注入中文字体，让原始CSS生效
+        console.log('🎯 检测到icon元素，保持原始字体设置');
+        htmlWithFontFallback = html;
+      } else {
+        // 没有icon时才注入中文字体
+        console.log('📝 注入中文字体支持');
+        htmlWithFontFallback = html.replace(
+          /<head>/i,
+          `<head><style>
+            body, p, h1, h2, h3, h4, h5, h6, div, span { 
+              font-family: "Microsoft YaHei", "WenQuanYi Zen Hei", "Noto Sans CJK SC", "Source Han Sans SC", "Droid Sans Fallback", "Hiragino Sans GB", Arial, sans-serif !important; 
+            }
+          </style>`
+        );
+      }
+      
+      // 如果是自动宽度，添加布局CSS
+      if (autoWidth) {
+        const layoutCSS = `
+          <style>
+            html, body { 
+              margin: 0; 
+              padding: ${padding}px; 
+              width: fit-content; 
+              min-width: auto; 
+              max-width: none;
+              overflow: visible;
+              box-sizing: border-box;
+            }
+            * {
+              box-sizing: border-box;
+            }
+          </style>
+        `;
+        
+        if (htmlWithFontFallback.includes('<head>')) {
+          htmlWithFontFallback = htmlWithFontFallback.replace('</head>', layoutCSS + '</head>');
+        } else {
+          htmlWithFontFallback = layoutCSS + htmlWithFontFallback;
+        }
+      }
 
       await page.setContent(htmlWithFontFallback, {
         waitUntil: ['load', 'domcontentloaded', 'networkidle0'],

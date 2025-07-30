@@ -3,6 +3,13 @@ const crypto = require('crypto');
 
 class QiniuService {
   constructor() {
+    // 延迟初始化，在实际使用时才读取环境变量
+    this.initialized = false;
+  }
+
+  initialize() {
+    if (this.initialized) return;
+
     this.accessKey = process.env.QINIU_ACCESS_KEY;
     this.secretKey = process.env.QINIU_SECRET_KEY;
     this.bucket = process.env.QINIU_BUCKET;
@@ -10,6 +17,7 @@ class QiniuService {
 
     if (!this.accessKey || !this.secretKey || !this.bucket) {
       console.warn('Qiniu credentials not configured. Please set QINIU_ACCESS_KEY, QINIU_SECRET_KEY, and QINIU_BUCKET in your environment variables.');
+      return false;
     }
 
     // Configure qiniu
@@ -24,6 +32,10 @@ class QiniuService {
     this.config = new qiniu.conf.Config();
     this.formUploader = new qiniu.form_up.FormUploader(this.config);
     this.putExtra = new qiniu.form_up.PutExtra();
+
+    this.initialized = true;
+    console.log('✅ 七牛云服务初始化成功');
+    return true;
   }
 
   generateFileName(originalName) {
@@ -42,7 +54,7 @@ class QiniuService {
 
   async uploadBuffer(buffer, fileName) {
     return new Promise((resolve, reject) => {
-      if (!this.accessKey || !this.secretKey || !this.bucket) {
+      if (!this.initialize()) {
         return reject(new Error('Qiniu credentials not configured'));
       }
 
@@ -81,7 +93,7 @@ class QiniuService {
 
   async uploadFile(filePath, fileName) {
     return new Promise((resolve, reject) => {
-      if (!this.accessKey || !this.secretKey || !this.bucket) {
+      if (!this.initialize()) {
         return reject(new Error('Qiniu credentials not configured'));
       }
 

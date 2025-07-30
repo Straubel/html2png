@@ -6,7 +6,34 @@ const qiniuService = require('./services/qiniu');
 const { ResourceManager, ValidationUtils, ErrorHandler } = require('./utils/resourceManager');
 
 // Load environment variables
-dotenv.config();
+const path = require('path');
+const fs = require('fs');
+
+// 尝试多个路径加载.env文件
+const envPaths = ['.env', '../.env', '../../.env'];
+let envLoaded = false;
+
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    console.log(`✅ 环境变量已从 ${envPath} 加载`);
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  console.log('⚠️  未找到.env文件，请确保已创建.env文件并配置七牛云信息');
+}
+
+// 调试环境变量
+console.log('🔍 环境变量检查:');
+console.log('PORT:', process.env.PORT || '未设置(使用默认3000)');
+console.log('QINIU_ACCESS_KEY:', process.env.QINIU_ACCESS_KEY ? '已设置' : '❌ 未设置');
+console.log('QINIU_SECRET_KEY:', process.env.QINIU_SECRET_KEY ? '已设置' : '❌ 未设置');
+console.log('QINIU_BUCKET:', process.env.QINIU_BUCKET ? '已设置' : '❌ 未设置');
+console.log('QINIU_DOMAIN:', process.env.QINIU_DOMAIN || '未设置(可选)');
+console.log('');
 
 const app = express();
 const PORT = process.env.PORT || 3000;

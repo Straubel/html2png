@@ -46,7 +46,6 @@ class HtmlToPngService {
       deviceScaleFactor = 1,
       fullPage = false,
       omitBackground = false,
-      quality = 100,
       timeout = 30000
     } = options;
 
@@ -73,12 +72,16 @@ class HtmlToPngService {
       });
 
       // Take screenshot
-      const screenshot = await page.screenshot({
+      const screenshotOptions = {
         type: 'png',
         fullPage,
-        omitBackground,
-        quality
-      });
+        omitBackground
+      };
+      
+      // PNG不支持quality参数，只有JPEG支持
+      // 如果需要quality控制，可以考虑先生成JPEG再转PNG
+      
+      const screenshot = await page.screenshot(screenshotOptions);
 
       return screenshot;
 

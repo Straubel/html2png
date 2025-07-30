@@ -111,7 +111,6 @@ class ValidationUtils {
       deviceScaleFactor: { type: 'number', min: 0.5, max: 3 },
       fullPage: { type: 'boolean' },
       omitBackground: { type: 'boolean' },
-      quality: { type: 'number', min: 0, max: 100 },
       timeout: { type: 'number', min: 1000, max: 60000 }
     };
 

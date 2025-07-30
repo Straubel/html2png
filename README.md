@@ -120,7 +120,6 @@ Content-Type: application/json
 | options.deviceScaleFactor | number | 否 | 设备缩放比例 (0.5-3) | 1 |
 | options.fullPage | boolean | 否 | 是否截取整页 | false |
 | options.omitBackground | boolean | 否 | 是否省略背景 | false |
-| options.quality | number | 否 | 图片质量 (0-100) | 100 |
 | options.timeout | number | 否 | 超时时间(ms) (1000-60000) | 30000 |
 
 #### 响应示例
